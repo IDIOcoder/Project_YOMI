@@ -109,7 +109,6 @@ class ChatBot:
         return {"message": markdown.markdown(response)}
 
     # <대화>의 의도로 분류된 경우 답변을 생성하는 함수입니다.
-    # GPU환경에서 실행하게 된다면 감정분류모델과 답변처리모델의 실행을 비동기 형식으로 전환하세요...
     def answer_func(self, usr_input):
         # 감정 처리
         emotion = self.emotion_model.predict(usr_input)

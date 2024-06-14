@@ -111,7 +111,7 @@ for e in range(num_epochs):
     train_acc = 0.0
     test_acc = 0.0
     model.train()
-    for batch_id, (token_ids, valid_length, segment_ids, label) in enumerate(tqdm_notebook(train_dataloader)):
+    for batch_id, (token_ids, valid_length, segment_ids, label) in enumerate(tqdm(train_dataloader)):
         optimizer.zero_grad()
         token_ids = token_ids.long().to(device)
         segment_ids = segment_ids.long().to(device)
@@ -134,7 +134,7 @@ for e in range(num_epochs):
     #train_history.append(train_acc / (batch_id+1))
 
     model.eval()
-    for batch_id, (token_ids, valid_length, segment_ids, label) in enumerate(tqdm_notebook(test_dataloader)):
+    for batch_id, (token_ids, valid_length, segment_ids, label) in enumerate(tqdm(test_dataloader)):
         token_ids = token_ids.long().to(device)
         segment_ids = segment_ids.long().to(device)
         valid_length= valid_length
