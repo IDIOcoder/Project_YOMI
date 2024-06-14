@@ -14,8 +14,9 @@ logger = log.get_logger("default")
 # 로컬 DB로 부터 레시피 정보를 받아옵니다.
 def search_recipe(dish_name: str):
     connection = pymysql.connect(
-        host='127.0.0.1',
-        user='root',
+        host='172.25.0.96',
+        port=3306,
+        user='newon',
         password=SQL_KEY,
         db='YOMI',
         charset='utf8'
@@ -56,8 +57,9 @@ def li_form(data: str):
 # 유사도 비교를 위해 DB에 등록된 요리들의 이름을 가진 파일을 업데이트 합니다.
 def get_dish_names():
     connection = pymysql.connect(
-        host='127.0.0.1',
-        user='root',
+        host='172.25.0.96',
+        port=3306,
+        user='newon',
         password=SQL_KEY,
         db='YOMI',
         charset='utf8'

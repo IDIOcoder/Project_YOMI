@@ -11,6 +11,7 @@ class TextGeneratorPredict:
         self.logger.info("Initializing Text-Generator (0/4)")
 
         self.device = device
+        print(self.device)
         self.weight_path = weight_path
         self.logger.debug(f"Device = {self.device} (1/4)")
 
@@ -19,6 +20,7 @@ class TextGeneratorPredict:
 
         self.logger.debug("Loading KoGPT2-Model (3/4)")
         self.model = GPT2LMHeadModel.from_pretrained('skt/kogpt2-base-v2')
+        self.model.to(self.device)
 
         self.logger.debug("Applying weights (4/4)")
         self.model.load_state_dict(torch.load(self.weight_path, map_location=self.device))

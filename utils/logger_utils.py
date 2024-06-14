@@ -3,6 +3,10 @@ import json
 import logging
 import logging.config
 
+DEFAULT = logging.getLogger('default')
+CHATBOT = logging.getLogger('chatbot')
+
+
 def setup_logging():
     current_dir = os.path.dirname(os.path.abspath(__file__))
     project_dir = os.path.dirname(current_dir)
@@ -25,10 +29,6 @@ def setup_logging():
     with open(config_path, 'r') as f:
         config = json.load(f)
         logging.config.dictConfig(config)
-
-    global DEFAULT, CHATBOT
-    DEFAULT = logging.getLogger('default')
-    CHATBOT = logging.getLogger('chatbot')
 
 
 def get_logger(name):

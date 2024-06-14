@@ -22,7 +22,8 @@ dotenv.load_dotenv()
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
 # 유저별 처리를 위한 json파일의 정보
-folder_path = './user'
+current_dir = os.path.dirname(os.path.abspath(__file__))
+usr_path = os.path.join(current_dir, 'user')
 default_content = {
     "state": 0,
     "search_failed_input": "",     # 음식이름 추출이 실패했던 문장
@@ -45,8 +46,10 @@ emotions = {
 # 유저에 대한 정보를 전달하는 함수.
 # 유저파일이 없다면 생성.
 def check_usr_json(usr_id):
+    if not os.path.exists(usr_path):
+        os.makedirs(usr_path)
     file_name = f'{usr_id}.json'
-    json_path = os.path.join(folder_path, file_name)
+    json_path = os.path.join(usr_path, file_name)
     flag = 0
     if not os.path.exists(json_path):
         log.DEFAULT.info("Create user file")
@@ -61,7 +64,7 @@ def check_usr_json(usr_id):
 
 # NER에서 음식이름을 특정하지 못한 경우 상태 없데이트를 위한 함수.
 def update_usr_state(usr_id, *usr_input):
-    json_path = os.path.join(folder_path, f'{usr_id}.json')
+    json_path = os.path.join(usr_path, f'{usr_id}.json')
     with open(json_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     if data['state'] == 0:
@@ -75,7 +78,7 @@ def update_usr_state(usr_id, *usr_input):
 
 
 def get_failed_input(usr_id):
-    json_path = os.path.join(folder_path, f'{usr_id}.json')
+    json_path = os.path.join(usr_path, f'{usr_id}.json')
     with open(json_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     return data['search_failed_input']
@@ -84,7 +87,7 @@ def get_failed_input(usr_id):
 class ChatBot:
     def __init__(self):
         # 장치 설정 & 모델 초기화
-        self.device = torch.device('cpu')
+        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         self.intent_model = IM.IntentClassifierPredict(os.getenv("INTENT"), self.device)
         self.emotion_model = EM.EmotionClassifier(os.getenv("EMOTION"), self.device)
         self.text_model = TM.TextGeneratorPredict(os.getenv("TEXT"), self.device)
