@@ -20,6 +20,7 @@ class NERModel:
 
         self.logger.debug("Loading KoELECTRA-Model (3/4)")
         self.model = ElectraForTokenClassification.from_pretrained('monologg/koelectra-base-v3-discriminator', num_labels=len(self.tag2idx))
+        self.model.to(self.device)
 
         self.logger.debug("Applying weights> (4/4)")
         self.model.load_state_dict(torch.load(self.weight_path, map_location=self.device))
