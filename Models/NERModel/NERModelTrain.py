@@ -6,7 +6,8 @@ from transformers import ElectraForTokenClassification, AdamW
 from tqdm import tqdm
 
 # download dataset
-train_data = wget.download('https://raw.githubusercontent.com/IDIOcoder/Chat-bot/main/dataset/ner_dataset.txt')
+# train_data = wget.download('https://raw.githubusercontent.com/IDIOcoder/Chat-bot/main/dataset/ner_dataset.txt')
+train_data = '../../dataset/ner_dataset.txt'
 
 # configure tag, download tokenizer
 tokenizer = ElectraTokenizerFast.from_pretrained('monologg/koelectra-base-v3-discriminator')
@@ -164,4 +165,4 @@ while True:
         print(f"{word}: {tag}")
 
 if input("save model? (y/n):")=="y":
-    torch.save(model, 'NERModel.pth')
+    torch.save(model.state_dict(), '../../weights/NER_weights.pth')

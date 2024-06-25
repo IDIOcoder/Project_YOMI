@@ -1,13 +1,12 @@
-#########################################
+##########################################
 # 전체모델 Yomi의 동작 파일입니다.             #
 # Local환경과 Server환경 모두 동작하도록 작성.  #
-#########################################
+##########################################
 import markdown
 import torch
 import os
 import dotenv
 import json
-import asyncio
 import utils.logger_utils as log
 import utils.recipe_utils as DB
 from Models.IntentModel import IntentClassifier as IM
@@ -21,38 +20,27 @@ dotenv.load_dotenv()
 # 병렬 처리 경고가 출력되지 않도록 합니다.
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
-# 유저별 처리를 위한 json파일의 정보
+# INFO OF user.json
 current_dir = os.path.dirname(os.path.abspath(__file__))
-usr_path = os.path.join(current_dir, 'user')
+folder_path = os.path.join(current_dir, 'user')
 default_content = {
     "state": 0,
     "search_failed_input": "",     # 음식이름 추출이 실패했던 문장
     "emotion": [0, 0, 0, 0, 0, 0, 0, 0, 0]     # 마지막 인덱스의 값은 마지막으로 추론된 감정의 인덱스
 }
 
-# 감정 종류에 대한 인덱스 정보
-emotions = {
-    '행복': 0,
-    '중립': 1,
-    '슬픔': 2,
-    '분노': 3,
-    '불안': 4,
-    '놀람': 5,
-    '피곤': 6,
-    '후회': 7
-}
-
 
 # 유저에 대한 정보를 전달하는 함수.
 # 유저파일이 없다면 생성.
-def check_usr_json(usr_id):
-    if not os.path.exists(usr_path):
-        os.makedirs(usr_path)
+def check_usr_state(usr_id):
+    if not os.path.exists(folder_path):
+        log.DEFAULT.warning("User folder not exists. Creating new folder...")
+        os.makedirs(folder_path)
     file_name = f'{usr_id}.json'
-    json_path = os.path.join(usr_path, file_name)
+    json_path = os.path.join(folder_path, file_name)
     flag = 0
     if not os.path.exists(json_path):
-        log.DEFAULT.info("Create user file")
+        log.DEFAULT.debug("Create New User's file")
         with open(json_path, 'w', encoding='utf-8') as f:
             json.dump(default_content, f, ensure_ascii=False, indent=4)
     else:
@@ -64,7 +52,7 @@ def check_usr_json(usr_id):
 
 # NER에서 음식이름을 특정하지 못한 경우 상태 없데이트를 위한 함수.
 def update_usr_state(usr_id, *usr_input):
-    json_path = os.path.join(usr_path, f'{usr_id}.json')
+    json_path = os.path.join(folder_path, f'{usr_id}.json')
     with open(json_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     if data['state'] == 0:
@@ -78,17 +66,29 @@ def update_usr_state(usr_id, *usr_input):
 
 
 def get_failed_input(usr_id):
-    json_path = os.path.join(usr_path, f'{usr_id}.json')
+    json_path = os.path.join(folder_path, f'{usr_id}.json')
     with open(json_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     return data['search_failed_input']
+
+
+# 유저 정보 파일에서 대화에서 추론된 감정을 업데이트 합니다.
+def update_emotion(usr_id, emotion):
+    emotion = int(emotion)
+    json_path = os.path.join(folder_path, f'{usr_id}.json')
+    with open(json_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    data['emotion'][emotion] += 1
+    data['emotion'][8] = emotion
+    with open(json_path, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
 
 
 class ChatBot:
     def __init__(self):
         # 장치 설정 & 모델 초기화
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-        self.intent_model = IM.IntentClassifierPredict(os.getenv("INTENT"), self.device)
+        self.intent_model = IM.IntentClassifierPredict(os.getenv("INTENT"),self.device)
         self.emotion_model = EM.EmotionClassifier(os.getenv("EMOTION"), self.device)
         self.text_model = TM.TextGeneratorPredict(os.getenv("TEXT"), self.device)
         self.ner_model = NM.NERModel(os.getenv("NER"), self.device)
@@ -98,24 +98,29 @@ class ChatBot:
 
     # 최종 답변을 생성하는 메인 함수입니다.
     def get_response(self, usr_input, usr_id):
-        flag = check_usr_json(usr_id)
-        response = ""
-        if flag == 0:   # 기본 동작
-            intent = self.intent_model.predict(usr_input)
+        try:
+            flag = check_usr_state(usr_id)
             response = ""
-            if intent == 0:     # 대화
-                response = self.answer_func(usr_input)
-            elif intent == 1:       # 레시피 요청
-                response = self.recipe_func(usr_input, usr_id)
-        elif flag == 1:     # 레시피 요청에 실패 했었을 경우
-            response = self.re_search_func(usr_input, usr_id)
-        return {"message": markdown.markdown(response)}
+            if flag == 0:   # 기본 동작
+                intent = self.intent_model.predict(usr_input)
+                response = ""
+                if intent == 0:     # 대화
+                    response = self.answer_func(usr_input, usr_id)
+                elif intent == 1:       # 레시피 요청
+                    response = self.recipe_func(usr_input, usr_id)
+            elif flag == 1:     # 레시피 요청에 실패 했었을 경우
+                response = self.re_search_func(usr_input, usr_id)
+            return {"message": markdown.markdown(response)}
+        except Exception as e:
+            log.DEFAULT.error(e)
+            return {"message": "제 AI에 문제가 생긴 것 같습니다. 개발자에게 문의해 주세요."}
 
     # <대화>의 의도로 분류된 경우 답변을 생성하는 함수입니다.
-    def answer_func(self, usr_input):
+    def answer_func(self, usr_input, usr_id):
         # 감정 처리
         emotion = self.emotion_model.predict(usr_input)
-        # 답변 처리
+        if emotion != 1:
+            update_emotion(usr_id, emotion)
         answer = self.text_model.generate_answer(usr_input)
         # 로깅
         log.CHATBOT.debug(

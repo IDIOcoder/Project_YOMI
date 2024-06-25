@@ -7,8 +7,7 @@ import numpy as np
 np.bool = np.bool_
 import gluonnlp as nlp
 from gluonnlp.data import SentencepieceTokenizer
-from tqdm import tqdm, tqdm_notebook
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 import pandas as pd
 from utils.KoBERT_utils import get_kobert_model
 from transformers import AdamW
@@ -19,7 +18,6 @@ from collections import Counter
 from sklearn.model_selection import train_test_split
 
 import IntentClassifierDataset as ID
-import IntentClassifierModel as IM
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -30,8 +28,9 @@ print("Done")
 
 # get dataset
 print("[GET] dataset")
-datasetURL = "https://raw.githubusercontent.com/IDIOcoder/Chat-bot/main/dataset/intent_dataset.csv"
-data = pd.read_csv(datasetURL, encoding='utf-8')
+# datasetURL = "https://raw.githubusercontent.com/IDIOcoder/Chat-bot/main/dataset/intent_dataset.csv"
+data_path = '../../dataset/intent_dataset.csv'
+data = pd.read_csv(data_path, encoding='utf-8')
 print("Done")
 
 data_list = []
@@ -55,7 +54,7 @@ class_weights_tensor = torch.tensor([class_weights[i] for i in sorted(class_weig
 max_len = 64
 batch_size = 32
 warmup_ratio = 0.1
-num_epochs = 5
+num_epochs = 15
 max_grad_norm = 1
 log_interval = 200
 learning_rate = 5e-5
@@ -72,9 +71,44 @@ train_dataloader = torch.utils.data.DataLoader(data_train, batch_size=batch_size
 test_dataloader = torch.utils.data.DataLoader(data_test, batch_size=batch_size, num_workers=2)
 
 #BERT 모델 불러오기
-model = IM.IntentClassifierModel(bertmodel, dr_rate=0.5).to(device)
+class IntentClassifierModel(nn.Module):
+  def __init__(self,
+               bert,
+               hidden_size=768,
+               num_classes=2,
+               dr_rate=None,
+               params=None):
+    super(IntentClassifierModel, self).__init__()
 
-#optimizer와 schedule설정
+    self.bert = bert
+    self.dr_rate = dr_rate
+
+    self.classifier = nn.Linear(hidden_size, num_classes)
+    if dr_rate:
+      self.dropout = nn.Dropout(p=dr_rate)
+
+  def gen_attention_mask(self, token_ids, valid_length):
+    attention_mask = torch.zeros_like(token_ids)
+    for i, v in enumerate(valid_length):
+      attention_mask[i][:v] = 1
+    return attention_mask.float()
+
+  def forward(self, token_ids, valid_length, segment_ids):
+    attention_mask = self.gen_attention_mask(token_ids, valid_length)
+
+    _, pooler = self.bert(input_ids=token_ids,
+                          token_type_ids=segment_ids.long(),
+                          attention_mask=attention_mask.float().to(token_ids.device),
+                          return_dict=False)
+    if self.dr_rate:
+      out = self.dropout(pooler)
+    return self.classifier(out)
+
+
+model = IntentClassifierModel(bertmodel, dr_rate=0.5).to(device)
+
+
+# optimizer와 schedule설정
 no_decay = ['bias', 'LayerNorm.weight']
 optimizer_grouped_parameters = [
     {'params':[p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
@@ -111,7 +145,7 @@ for e in range(num_epochs):
         optimizer.zero_grad()
         token_ids = token_ids.long().to(device)
         segment_ids = segment_ids.long().to(device)
-        valid_length= valid_length
+        valid_length = valid_length
         label = label.long().to(device)
         out = model(token_ids, valid_length, segment_ids)
 
@@ -184,5 +218,8 @@ while end == 1 :
     print("\n")
 
 ##### 모델 다운로드 #####
-if input("save model? (y/n)") == "y":
-    torch.save(model, 'intent_model.pth')
+if input("save model? (y/n): ") == "y":
+    torch.save(model.state_dict(), '../../weights/intent_weights.pth')
+
+if input("save tokenizer? (y/n): ") == "y":
+    tokenizer.save_pretrained('./saved_tokenizer')

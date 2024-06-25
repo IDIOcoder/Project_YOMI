@@ -8,13 +8,15 @@ CHATBOT = logging.getLogger('chatbot')
 
 
 def setup_logging():
+    print("[DEBUG] setting up logger")
     current_dir = os.path.dirname(os.path.abspath(__file__))
     project_dir = os.path.dirname(current_dir)
     config_path = os.path.join(current_dir, 'logger.json')
 
 
     # log dir이 있는지 확인하고 없다면 생성
-    logs_dir = os.path.join(current_dir, 'logs')
+    logs_dir = os.path.join(project_dir, 'logs')
+    print(f"[DEBUG] log_path: {logs_dir}")
     if not os.path.exists(logs_dir):
         os.makedirs(logs_dir)
 

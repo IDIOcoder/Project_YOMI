@@ -77,3 +77,27 @@ def get_dish_names():
         logger.error('Error while update dish_name from MySQL', e)
     finally:
         connection.close()
+
+
+def get_rand_dish():
+    connection = pymysql.connect(
+        host='172.25.0.96',
+        port=3306,
+        user='newon',
+        password=SQL_KEY,
+        db='YOMI',
+        charset='utf8'
+    )
+    try:
+        with connection.cursor() as cur:
+            query = "SELECT dish FROM recipe ORDER BY RAND() LIMIT 5"
+            cur.execute(query)
+            search_result = cur.fetchall()
+            names = []
+            for name in search_result:
+                names.append(name[0])
+            return names
+    except Exception as e:
+        logger.error('Error while get random dish from MySQL', e)
+    finally:
+        connection.close()

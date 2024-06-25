@@ -55,27 +55,28 @@ class EmotionClassifier:
             with torch.no_grad():
                 out = self.model(token_ids, valid_length, segment_ids)
 
-            test_eval = []
+            # test_eval = []
+            emotion = None
             for i in out:
                 logits = i
                 logits = logits.detach().cpu().numpy()
                 emotion = np.argmax(logits)
 
-                if emotion == 0:
-                    test_eval.append("행복")
-                elif emotion == 1:
-                    test_eval.append("중립")
-                elif emotion == 2:
-                    test_eval.append("슬픔")
-                elif emotion == 3:
-                    test_eval.append("분노")
-                elif emotion == 4:
-                    test_eval.append("불안")
-                elif emotion == 5:
-                    test_eval.append("놀람")
-                elif emotion == 6:
-                    test_eval.append("피곤")
-                elif emotion == 7:
-                    test_eval.append("후회")
+                # if emotion == 0:    # 행복
+                #     test_eval.append("행복")
+                # elif emotion == 1:
+                #     test_eval.append("중립")
+                # elif emotion == 2:
+                #     test_eval.append("슬픔")
+                # elif emotion == 3:
+                #     test_eval.append("분노")
+                # elif emotion == 4:
+                #     test_eval.append("불안")
+                # elif emotion == 5:
+                #     test_eval.append("놀람")
+                # elif emotion == 6:
+                #     test_eval.append("피곤")
+                # elif emotion == 7:
+                #     test_eval.append("후회")
 
-            return test_eval[0]
+            return emotion
