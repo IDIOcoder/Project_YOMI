@@ -6,7 +6,7 @@ class IntentClassifierModel(nn.Module):
   def __init__(self,
                bert,
                hidden_size=768,
-               num_classes=2,
+               num_classes=3,
                dr_rate=None,
                params=None):
     super(IntentClassifierModel, self).__init__()

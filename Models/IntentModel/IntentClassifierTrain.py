@@ -54,7 +54,7 @@ class_weights_tensor = torch.tensor([class_weights[i] for i in sorted(class_weig
 max_len = 64
 batch_size = 32
 warmup_ratio = 0.1
-num_epochs = 15
+num_epochs = 10
 max_grad_norm = 1
 log_interval = 200
 learning_rate = 5e-5
@@ -75,7 +75,7 @@ class IntentClassifierModel(nn.Module):
   def __init__(self,
                bert,
                hidden_size=768,
-               num_classes=2,
+               num_classes=3,
                dr_rate=None,
                params=None):
     super(IntentClassifierModel, self).__init__()
@@ -206,6 +206,10 @@ def predict(predict_sentence):
                 test_eval.append("대화의")
             elif np.argmax(logits) == 1:
                 test_eval.append("레시피 요청의")
+            elif np.argmax(logits) == 2:
+                test_eval.append("긍정의")
+            elif np.argmax(logits) == 3:
+                test_eval.append("부정의")
 
         print(">> 입력하신 내용에서 " + test_eval[0] + " 의도가 느껴집니다.")
 

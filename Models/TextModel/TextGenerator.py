@@ -11,7 +11,6 @@ class TextGeneratorPredict:
         self.logger.info("Initializing Text-Generator (0/4)")
 
         self.device = device
-        print(self.device)
         self.weight_path = weight_path
         self.logger.debug(f"Device = {self.device} (1/4)")
 
